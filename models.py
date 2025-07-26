@@ -57,17 +57,4 @@ class HealthResponse(BaseModel):
     timestamp: str = Field(..., description="Timestamp of health check")
 
 
-class ImageValidationError(BaseModel):
-    """Error details for image validation failures."""
-    
-    error_type: str = Field(..., description="Type of validation error")
-    message: str = Field(..., description="Error message")
-    image_index: Optional[int] = Field(None, description="Index of the problematic image")
-
-
-class ValidationError(BaseModel):
-    """General validation error response."""
-    
-    error: str = Field(..., description="Error type")
-    message: str = Field(..., description="Error message")
-    details: Optional[str] = Field(None, description="Additional error details") 
+ 

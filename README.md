@@ -27,6 +27,8 @@ A generic AI agent service with multimodal support, text embedding capabilities,
    uv run uvicorn main:app --reload
    ```
 
+   **Note**: API documentation is available at `/docs` (Swagger UI) and `/redoc` (ReDoc) in development. Set `DOCS_ENABLED=false` in production to disable these endpoints.
+
 ### API Endpoints
 - `POST /api/v1/agent/chat` - Chat with AI agent (supports text + images)
 - `POST /api/v1/embeddings` - Generate text embeddings
@@ -97,9 +99,9 @@ Build a generic AI agent service with:
 - ✅ Add agent service validation to FastAPI lifespan
 - ✅ Implement comprehensive health checks for all services
 
-#### 🔄 Milestone 6: Documentation & Deployment Prep
-- Generate API documentation and create deployment configuration
-- Finalize README and setup instructions
+#### ✅ Milestone 6: Documentation & Deployment Prep
+- ✅ Generate API documentation and create deployment configuration
+- ✅ Finalize README and setup instructions
 
 ## 🔧 Technical Decisions
 
@@ -111,6 +113,13 @@ Build a generic AI agent service with:
 - **Tracing**: OpenTelemetry + Langfuse for observability
 - **API**: FastAPI for REST endpoints with minimal endpoints (agent chat, embeddings, health)
 
+### Service Architecture
+- **Langfuse Service**: Dedicated service for tracing and observability management
+- **Agent Service**: Handles AI agent operations with integrated tracing
+- **Embedding Service**: Manages text embedding operations
+- **Separation of Concerns**: Each service has clear responsibilities and can be tested independently
+- **Configuration Management**: Uses Pydantic Settings with constructor-based initialization to avoid OS environment variable dependencies
+
 ### Security & Management
 - **Security**: Firebase authentication handled by API gateway
 - **Session Management**: External session management via Firebase (optional for Phase 3)
@@ -118,62 +127,7 @@ Build a generic AI agent service with:
 - **Application Lifecycle**: Modern FastAPI lifespan events for startup/shutdown management
 - **Multimodal Support**: Text + image input (JPEG, PNG, GIF, 8MB limit)
 
-## ✅ Implementation Status
 
-### Core Agent Setup - COMPLETED
-- ✅ **Create basic pydantic-ai agent with OpenRouter + Gemini integration**:
-  - ✅ Configure agent with `google/gemini-2.5-flash-lite` model via OpenRouter
-  - ✅ Set up proper dependency injection for OpenRouter API keys
-  - ✅ Implement basic system prompts/instructions
-  - ✅ Add structured output types for responses
-  - ✅ Fix Google Gemini compatibility issues (additionalProperties warning)
-
-- ✅ **Implement agent service class**:
-  - ✅ Create `AgentService` class to manage agent lifecycle
-  - ✅ Add proper initialization and validation
-  - ✅ Implement message processing with error handling
-  - ✅ Add retry logic and model error handling
-  - ✅ Implement proper model configuration (temperature, max_tokens) via agent.run()
-
-### Multimodal Support - COMPLETED
-- ✅ **Add multimodal input support**:
-  - ✅ Support text + image input combinations
-  - ✅ Implement image processing and validation
-  - ✅ Support JPEG, PNG, GIF formats only
-  - ✅ Add 8MB size limit validation for images
-  - ✅ Add proper MIME type handling for images
-  - ✅ Update request models to handle both text and image inputs
-
-### Structured Output Preparation - COMPLETED
-- ✅ **Define structured output models**:
-  - ✅ Create Pydantic models for agent responses (JSON output)
-  - ✅ Support different response types (text, structured data, etc.)
-  - ✅ Add output validation and error handling
-  - ✅ Prepare for future tool integration
-
-### Configuration & Dependencies - COMPLETED
-- ✅ **Update configuration for agent settings**:
-  - ✅ Add OpenRouter API key configuration (reuse existing `openrouter_api_key`)
-  - ✅ Add agent-specific settings (temperature, max tokens, etc.)
-  - ✅ Add multimodal settings (8MB image limit, supported formats: JPEG/PNG/GIF)
-  - ✅ Ensure proper secret management for API keys
-
-- ✅ **Add agent dependencies to project**:
-  - ✅ Ensure `pydantic-ai-slim[openai]` is properly configured
-  - ✅ Add `python-multipart` for form data handling
-
-### API Integration - COMPLETED
-- ✅ **Enhance `/api/v1/agent/chat` endpoint**:
-  - ✅ Replace placeholder with actual agent processing
-  - ✅ Add support for multimodal input (text + images)
-  - ✅ Add proper request/response validation
-  - ✅ **No session management for Phase 3** - focus on basic request/response
-  - ✅ Add comprehensive error handling and logging
-
-- ✅ **Add agent health checks**:
-  - ✅ Update health endpoint to include agent status
-  - ✅ Add agent validation in startup lifecycle
-  - ✅ Implement agent readiness checks
 
 ## 🧪 Testing
 
@@ -211,11 +165,15 @@ agent-api-template/
 ├── main.py              # FastAPI application entry point
 ├── agent.py             # AI agent service implementation
 ├── embeddings.py        # Text embedding service
+├── langfuse_service.py  # Langfuse tracing and observability service
 ├── config.py            # Application configuration
 ├── models.py            # Pydantic models for API
 ├── pyproject.toml       # Project dependencies and metadata
 ├── uv.lock              # Locked dependency versions
 ├── .env.example         # Environment variables template
+├── Dockerfile           # Docker container configuration
+├── docker-compose.yml   # Docker Compose configuration
+├── .dockerignore        # Docker build exclusions
 ├── tests/               # Test suite
 │   ├── test_agent_unit.py
 │   ├── test_agent_integration.py
@@ -236,16 +194,90 @@ agent-api-template/
 - Private API design suitable for specific app integration
 - Robust startup validation and error handling
 
-## 🚀 Production Readiness
 
-- All core functionality implemented and working
-- API endpoints functional and validated
-- Error handling and logging in place
-- Ready for testing and deployment preparation
+
+## 🐳 Deployment Options
+
+### Docker Deployment
+
+The application can be deployed using Docker for containerized environments.
+
+**Dockerfile:**
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install uv
+RUN pip install uv
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies
+RUN uv sync --frozen
+
+# Copy application code
+COPY . .
+
+# Expose port
+EXPOSE 8000
+
+# Run the application
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+**Build and Run:**
+```bash
+# Build the image
+docker build -t agent-api .
+
+# Run the container
+docker run -p 8000:8000 --env-file .env agent-api
+```
+
+**Using Docker Compose (Recommended):**
+```bash
+# Start the service
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the service
+docker-compose down
+```
+
+
+
+### Environment-Specific Configuration
+
+**Development:**
+```bash
+DEBUG=true
+DOCS_ENABLED=true
+LANGFUSE_ENABLED=true
+LANGFUSE_TRACE_CONTENT_LIMIT=100
+```
+
+**Production:**
+```bash
+DEBUG=false
+DOCS_ENABLED=false
+LANGFUSE_ENABLED=true
+LANGFUSE_TRACE_CONTENT_LIMIT=50
+```
 
 ## 📝 Environment Variables
 
 Create a `.env` file based on `.env.example` with the following variables:
+
+### Production Configuration
+For production deployments, set `DOCS_ENABLED=false` to disable FastAPI's automatic API documentation endpoints (`/docs` and `/redoc`). This improves security and performance by preventing exposure of your API structure.
+
+Set `LANGFUSE_ENABLED=false` to disable Langfuse tracing and monitoring in production environments where you don't need observability or want to reduce external dependencies.
+
+**Content Tracing**: The system traces truncated message and response content (default: 100 characters) for debugging while preserving privacy. Images are excluded from tracing for performance and privacy reasons. Adjust `LANGFUSE_TRACE_CONTENT_LIMIT` to control the amount of content traced.
 
 ```bash
 # API Keys
@@ -253,12 +285,15 @@ OPENROUTER_API_KEY=your_openrouter_api_key
 LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
 LANGFUSE_SECRET_KEY=your_langfuse_secret_key
 LANGFUSE_HOST=https://cloud.langfuse.com
+LANGFUSE_ENABLED=true
+LANGFUSE_TRACE_CONTENT_LIMIT=100
 
 # Application Settings
 APP_NAME=AI Agent API
 APP_VERSION=1.0.0
 APP_DESCRIPTION=Generic AI Agent API Service
 DEBUG=false
+DOCS_ENABLED=true
 
 # Embedding Configuration
 EMBEDDING_MODEL_NAME=BAAI/bge-m3

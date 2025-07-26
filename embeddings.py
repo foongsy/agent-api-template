@@ -4,7 +4,6 @@ Embedding service using LlamaIndex with Hugging Face models.
 
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from typing import List, Union
-import numpy as np
 import logging
 from config import settings
 

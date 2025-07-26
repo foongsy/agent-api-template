@@ -12,7 +12,7 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 from agent import AgentService
-from models import AgentResponse, ChatRequest, ImageValidationError
+from models import AgentResponse, ChatRequest
 
 # Safety measure to prevent accidental real LLM calls during testing
 models.ALLOW_MODEL_REQUESTS = False

@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from config import settings
 from agent import agent_service
 from embeddings import embedding_service
+from langfuse_service import langfuse_service
 from models import ChatRequest, ChatResponse, AgentResponse, EmbeddingRequest, EmbeddingResponse, HealthResponse
 
 # Configure logging
@@ -23,8 +24,12 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager for startup and shutdown events."""
+    
     # Startup: Initialize and validate services
     logger.info("Starting up AI Agent API Service...")
+    
+    # Initialize Langfuse service
+    langfuse_service.initialize()
     
     try:
         # Validate embedding service
@@ -47,7 +52,6 @@ async def lifespan(app: FastAPI):
     
     # Shutdown: Cleanup resources
     logger.info("Shutting down AI Agent API Service...")
-    # TODO: Add cleanup logic here if needed
 
 
 # Initialize FastAPI app with lifespan
@@ -55,7 +59,9 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description=settings.app_description,
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/docs" if settings.docs_enabled else None,
+    redoc_url="/redoc" if settings.docs_enabled else None
 )
 
 # Add CORS middleware
@@ -76,7 +82,7 @@ async def health_check():
         services = {
             "agent": "operational",
             "embeddings": "operational",
-            "langfuse": "operational"
+            "langfuse": langfuse_service.get_status()
         }
         
         return HealthResponse(

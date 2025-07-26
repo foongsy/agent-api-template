@@ -29,6 +29,14 @@ class Settings(BaseSettings):
         default="https://cloud.langfuse.com",
         description="Langfuse host URL"
     )
+    langfuse_enabled: bool = Field(
+        default=True,
+        description="Enable Langfuse tracing and monitoring"
+    )
+    langfuse_trace_content_limit: int = Field(
+        default=100,
+        description="Maximum characters to trace for message and response content"
+    )
     
     # Embedding configuration
     embedding_model_name: str = Field(
@@ -81,13 +89,16 @@ class Settings(BaseSettings):
         default=False,
         description="Debug mode"
     )
+    docs_enabled: bool = Field(
+        default=True,
+        description="Enable FastAPI documentation endpoints (/docs, /redoc)"
+    )
     
     # Pydantic Settings configuration
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore"
+        case_sensitive=False
     )
     
     def get_openrouter_api_key(self) -> str:
