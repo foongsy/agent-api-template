@@ -70,8 +70,13 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, description="Debug mode")
     docs_enabled: bool = Field(
         default=True,
-        description="Enable FastAPI documentation endpoints (/docs, /redoc)",
+        description="Enable API documentation endpoints (/docs, /redoc)",
     )
+
+    # Flask-specific configuration
+    flask_debug: bool = Field(default=False, description="Flask debug mode")
+    flask_host: str = Field(default="0.0.0.0", description="Flask host")
+    flask_port: int = Field(default=8000, description="Flask port")
 
     # Pydantic Settings configuration
     model_config = SettingsConfigDict(
