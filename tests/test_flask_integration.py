@@ -6,8 +6,14 @@ import json
 import pytest
 import io
 from PIL import Image
+from pydantic_ai import models
+from pydantic_ai.models.test import TestModel
 
 from main import app
+from agent import agent_service
+
+# Safety measure to prevent accidental real LLM calls during testing
+models.ALLOW_MODEL_REQUESTS = False
 
 
 @pytest.fixture
@@ -86,18 +92,19 @@ class TestFlaskApplication:
 
     def test_chat_endpoint_text_only(self, client):
         """Test chat endpoint with text-only message."""
-        response = client.post('/api/v1/agent/chat',
-                             data={'message': 'Hello, this is a test message'},
-                             content_type='multipart/form-data')
-        
-        assert response.status_code == 200
-        
-        data = response.get_json()
-        assert 'response' in data
-        assert 'processing_time_ms' in data
-        assert 'model_used' in data
-        
-        # Check response structure
+        with agent_service.agent.override(model=TestModel()):
+            response = client.post('/api/v1/agent/chat',
+                                 data={'message': 'Hello, this is a test message'},
+                                 content_type='multipart/form-data')
+            
+            assert response.status_code == 200
+            
+            data = response.get_json()
+            assert 'response' in data
+            assert 'processing_time_ms' in data
+            assert 'model_used' in data
+            
+            # Check response structure
         agent_response = data['response']
         assert 'content' in agent_response
         assert 'timestamp' in agent_response
@@ -106,17 +113,18 @@ class TestFlaskApplication:
 
     def test_chat_endpoint_with_session(self, client):
         """Test chat endpoint with session ID."""
-        response = client.post('/api/v1/agent/chat',
-                             data={
-                                 'message': 'Hello with session',
-                                 'session_id': 'test-session-123'
-                             },
-                             content_type='multipart/form-data')
-        
-        assert response.status_code == 200
-        
-        data = response.get_json()
-        assert data['session_id'] == 'test-session-123'
+        with agent_service.agent.override(model=TestModel()):
+            response = client.post('/api/v1/agent/chat',
+                                 data={
+                                     'message': 'Hello with session',
+                                     'session_id': 'test-session-123'
+                                 },
+                                 content_type='multipart/form-data')
+            
+            assert response.status_code == 200
+            
+            data = response.get_json()
+            assert data['session_id'] == 'test-session-123'
 
     def test_chat_endpoint_empty_message(self, client):
         """Test chat endpoint with empty message."""
@@ -140,28 +148,29 @@ class TestFlaskApplication:
 
     def test_chat_endpoint_with_image(self, client):
         """Test chat endpoint with image upload."""
-        # Create a small test image
-        img = Image.new('RGB', (100, 100), color='green')
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='JPEG')
-        img_bytes.seek(0)
-        
-        response = client.post('/api/v1/agent/chat',
-                             data={
-                                 'message': 'What color is this image?',
-                                 'images': (img_bytes, 'test.jpg')
-                             },
-                             content_type='multipart/form-data')
-        
-        assert response.status_code == 200
-        
-        data = response.get_json()
-        assert 'response' in data
-        
-        # The response should mention the color or describe the image
-        response_content = data['response']['content'].lower()
-        # Note: This is a basic test - the actual response may vary
-        assert len(response_content) > 0
+        with agent_service.agent.override(model=TestModel()):
+            # Create a small test image
+            img = Image.new('RGB', (100, 100), color='green')
+            img_bytes = io.BytesIO()
+            img.save(img_bytes, format='JPEG')
+            img_bytes.seek(0)
+            
+            response = client.post('/api/v1/agent/chat',
+                                 data={
+                                     'message': 'What color is this image?',
+                                     'images': (img_bytes, 'test.jpg')
+                                 },
+                                 content_type='multipart/form-data')
+            
+            assert response.status_code == 200
+            
+            data = response.get_json()
+            assert 'response' in data
+            
+            # The response should mention the color or describe the image
+            response_content = data['response']['content'].lower()
+            # Note: This is a basic test - the actual response may vary
+            assert len(response_content) > 0
 
     def test_chat_endpoint_long_message(self, client):
         """Test chat endpoint with message that's too long."""
@@ -211,7 +220,8 @@ class TestFlaskCompatibility:
         assert response.status_code == 200
         
         # Test multipart form data
-        response = client.post('/api/v1/agent/chat',
-                             data={'message': 'test'},
-                             content_type='multipart/form-data')
-        assert response.status_code == 200 
+        with agent_service.agent.override(model=TestModel()):
+            response = client.post('/api/v1/agent/chat',
+                                 data={'message': 'test'},
+                                 content_type='multipart/form-data')
+            assert response.status_code == 200 

@@ -71,10 +71,14 @@ def initialize_services():
         asyncio.run(embedding_service.validate_model())
         logger.info("Embedding service validation successful")
 
-        # Validate agent service
-        logger.info("Validating agent service...")
-        asyncio.run(agent_service.validate_agent())
-        logger.info("Agent service validation successful")
+        # Validate agent service only if model requests are allowed
+        from pydantic_ai import models
+        if models.ALLOW_MODEL_REQUESTS:
+            logger.info("Validating agent service...")
+            asyncio.run(agent_service.validate_agent())
+            logger.info("Agent service validation successful")
+        else:
+            logger.info("Skipping agent validation (ALLOW_MODEL_REQUESTS=False)")
 
         logger.info(
             "All services validated successfully. Application ready to serve requests."

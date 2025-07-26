@@ -11,7 +11,7 @@ from pydantic_ai import models
 from pydantic_ai.models.test import TestModel
 
 from agent import agent_service
-from main import app
+from main_fastapi_backup import app
 
 # Safety measure to prevent accidental real LLM calls during testing
 models.ALLOW_MODEL_REQUESTS = False
