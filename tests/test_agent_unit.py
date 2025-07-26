@@ -2,14 +2,13 @@
 Unit tests for AgentService class using pydantic-ai testing best practices.
 """
 
-import pytest
 import io
-from PIL import Image
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
+import pytest
+from PIL import Image
 from pydantic_ai import models
 from pydantic_ai.models.test import TestModel
-from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 from agent import AgentService
 from models import AgentResponse, ChatRequest
@@ -30,17 +29,17 @@ class TestAgentService:
     def test_image_bytes(self):
         """Create test image bytes for testing."""
         # Create a simple test image
-        img = Image.new('RGB', (100, 100), color='red')
+        img = Image.new("RGB", (100, 100), color="red")
         img_bytes = io.BytesIO()
-        img.save(img_bytes, format='JPEG')
+        img.save(img_bytes, format="JPEG")
         return img_bytes.getvalue()
 
     @pytest.fixture
     def test_png_bytes(self):
         """Create test PNG image bytes for testing."""
-        img = Image.new('RGB', (100, 100), color='blue')
+        img = Image.new("RGB", (100, 100), color="blue")
         img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
+        img.save(img_bytes, format="PNG")
         return img_bytes.getvalue()
 
     def test_agent_service_initialization(self, agent_service):
@@ -51,6 +50,7 @@ class TestAgentService:
     def test_agent_service_agent_type(self, agent_service):
         """Test that the agent is properly configured."""
         from pydantic_ai import Agent
+
         assert isinstance(agent_service.agent, Agent)
 
     def test_agent_service_without_api_key(self):
@@ -66,7 +66,7 @@ class TestAgentService:
         with agent_service.agent.override(model=TestModel()):
             request = ChatRequest(message="Hello, this is a test message.")
             result = await agent_service.process_message(request)
-            
+
             assert isinstance(result, AgentResponse)
             assert result.content is not None
             assert result.timestamp is not None
@@ -78,10 +78,10 @@ class TestAgentService:
             request = ChatRequest(
                 message="Describe this image",
                 images=[test_image_bytes],
-                image_mime_types=["image/jpeg"]
+                image_mime_types=["image/jpeg"],
             )
             result = await agent_service.process_message(request)
-            
+
             assert isinstance(result, AgentResponse)
             assert result.content is not None
 
@@ -89,7 +89,7 @@ class TestAgentService:
         """Test image validation with valid JPEG."""
         images = [test_image_bytes]
         mime_types = ["image/jpeg"]
-        
+
         result = agent_service._validate_images(images, mime_types)
         assert len(result) == 1
         assert result[0].media_type == "image/jpeg"
@@ -98,7 +98,7 @@ class TestAgentService:
         """Test image validation with valid PNG."""
         images = [test_png_bytes]
         mime_types = ["image/png"]
-        
+
         result = agent_service._validate_images(images, mime_types)
         assert len(result) == 1
         assert result[0].media_type == "image/png"
@@ -107,7 +107,7 @@ class TestAgentService:
         """Test image validation with unsupported format."""
         images = [test_image_bytes]
         mime_types = ["image/bmp"]  # Unsupported format
-        
+
         with pytest.raises(ValueError, match="Unsupported image format"):
             agent_service._validate_images(images, mime_types)
 
@@ -117,7 +117,7 @@ class TestAgentService:
         large_image = b"x" * (9 * 1024 * 1024)  # 9MB
         images = [large_image]
         mime_types = ["image/jpeg"]
-        
+
         with pytest.raises(ValueError, match="exceeds maximum size"):
             agent_service._validate_images(images, mime_types)
 
@@ -125,7 +125,7 @@ class TestAgentService:
         """Test image validation with mismatched image and MIME type counts."""
         images = [test_image_bytes, test_image_bytes]
         mime_types = ["image/jpeg"]  # Only one MIME type for two images
-        
+
         with pytest.raises(ValueError, match="Number of images must match"):
             agent_service._validate_images(images, mime_types)
 
@@ -146,7 +146,7 @@ class TestAgentService:
             # Test with very long message that might cause issues
             long_message = "x" * 10000  # Maximum allowed length
             request = ChatRequest(message=long_message)
-            
+
             # Should not raise an exception
             result = await agent_service.process_message(request)
             assert isinstance(result, AgentResponse)
@@ -172,18 +172,20 @@ class TestAgentService:
         with agent_service.agent.override(model=TestModel()):
             request = ChatRequest(message="Test message")
             result = await agent_service.process_message(request)
-            
+
             # Check required fields
-            assert hasattr(result, 'content')
-            assert hasattr(result, 'confidence')
-            assert hasattr(result, 'reasoning')
-            assert hasattr(result, 'timestamp')
-            
+            assert hasattr(result, "content")
+            assert hasattr(result, "confidence")
+            assert hasattr(result, "reasoning")
+            assert hasattr(result, "timestamp")
+
             # Check types
             assert isinstance(result.content, str)
             assert result.confidence is None or isinstance(result.confidence, float)
             assert result.reasoning is None or isinstance(result.reasoning, str)
-            assert isinstance(result.timestamp, str) or hasattr(result.timestamp, 'isoformat')
+            assert isinstance(result.timestamp, str) or hasattr(
+                result.timestamp, "isoformat"
+            )
 
     @pytest.mark.asyncio
     async def test_multimodal_input_processing(self, agent_service, test_image_bytes):
@@ -192,24 +194,26 @@ class TestAgentService:
             request = ChatRequest(
                 message="Analyze this image and describe what you see",
                 images=[test_image_bytes],
-                image_mime_types=["image/jpeg"]
+                image_mime_types=["image/jpeg"],
             )
             result = await agent_service.process_message(request)
-            
+
             assert isinstance(result, AgentResponse)
             assert result.content is not None
 
     @pytest.mark.asyncio
-    async def test_multiple_images_processing(self, agent_service, test_image_bytes, test_png_bytes):
+    async def test_multiple_images_processing(
+        self, agent_service, test_image_bytes, test_png_bytes
+    ):
         """Test processing multiple images."""
         with agent_service.agent.override(model=TestModel()):
             request = ChatRequest(
                 message="Compare these two images",
                 images=[test_image_bytes, test_png_bytes],
-                image_mime_types=["image/jpeg", "image/png"]
+                image_mime_types=["image/jpeg", "image/png"],
             )
             result = await agent_service.process_message(request)
-            
+
             assert isinstance(result, AgentResponse)
             assert result.content is not None
 
@@ -218,31 +222,31 @@ class TestAgentService:
         # Test with None values
         result = agent_service._validate_images(None, None)
         assert result == []
-        
+
         # Test with empty lists
         result = agent_service._validate_images([], [])
         assert result == []
-        
+
         # Test with empty images list but valid MIME types - should return empty list
         result = agent_service._validate_images([], ["image/jpeg"])
         assert result == []
 
-    @patch('agent.settings.max_image_size_mb', 1)  # Set to 1MB for testing
+    @patch("agent.settings.max_image_size_mb", 1)  # Set to 1MB for testing
     def test_image_size_limit_configurable(self, agent_service, test_image_bytes):
         """Test that image size limit is configurable."""
         # Create a 1.5MB image
         large_image = b"x" * (int(1.5 * 1024 * 1024))
         images = [large_image]
         mime_types = ["image/jpeg"]
-        
+
         with pytest.raises(ValueError, match="exceeds maximum size"):
             agent_service._validate_images(images, mime_types)
 
-    @patch('agent.settings.supported_image_formats', ["image/jpeg"])
+    @patch("agent.settings.supported_image_formats", ["image/jpeg"])
     def test_supported_formats_configurable(self, agent_service, test_png_bytes):
         """Test that supported formats are configurable."""
         images = [test_png_bytes]
         mime_types = ["image/png"]
-        
+
         with pytest.raises(ValueError, match="Unsupported image format"):
-            agent_service._validate_images(images, mime_types) 
+            agent_service._validate_images(images, mime_types)

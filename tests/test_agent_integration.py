@@ -2,17 +2,16 @@
 Integration tests for agent API endpoints using FastAPI TestClient.
 """
 
-import pytest
 import io
-from PIL import Image
-from fastapi.testclient import TestClient
-from unittest.mock import patch
 
+import pytest
+from fastapi.testclient import TestClient
+from PIL import Image
 from pydantic_ai import models
 from pydantic_ai.models.test import TestModel
 
-from main import app
 from agent import agent_service
+from main import app
 
 # Safety measure to prevent accidental real LLM calls during testing
 models.ALLOW_MODEL_REQUESTS = False
@@ -29,24 +28,24 @@ class TestAgentAPI:
     @pytest.fixture
     def test_image_bytes(self):
         """Create test image bytes for testing."""
-        img = Image.new('RGB', (100, 100), color='red')
+        img = Image.new("RGB", (100, 100), color="red")
         img_bytes = io.BytesIO()
-        img.save(img_bytes, format='JPEG')
+        img.save(img_bytes, format="JPEG")
         return img_bytes.getvalue()
 
     @pytest.fixture
     def test_png_bytes(self):
         """Create test PNG image bytes for testing."""
-        img = Image.new('RGB', (100, 100), color='blue')
+        img = Image.new("RGB", (100, 100), color="blue")
         img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
+        img.save(img_bytes, format="PNG")
         return img_bytes.getvalue()
 
     def test_health_endpoint(self, client):
         """Test the health endpoint."""
         response = client.get("/api/v1/health")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["status"] == "healthy"
         assert "services" in data
@@ -58,16 +57,16 @@ class TestAgentAPI:
             response = client.post(
                 "/api/v1/agent/chat",
                 data={"message": "Hello, this is a test message."},
-                files={}
+                files={},
             )
-            
+
             assert response.status_code == 200
             data = response.json()
-            
+
             assert "response" in data
             assert "processing_time_ms" in data
             assert "model_used" in data
-            
+
             response_data = data["response"]
             assert "content" in response_data
             assert "timestamp" in response_data
@@ -78,12 +77,12 @@ class TestAgentAPI:
             response = client.post(
                 "/api/v1/agent/chat",
                 data={"message": "Describe this image"},
-                files={"images": ("test.jpg", test_image_bytes, "image/jpeg")}
+                files={"images": ("test.jpg", test_image_bytes, "image/jpeg")},
             )
-            
+
             assert response.status_code == 200
             data = response.json()
-            
+
             assert "response" in data
             assert "processing_time_ms" in data
             assert "model_used" in data
@@ -96,13 +95,13 @@ class TestAgentAPI:
                 data={"message": "Compare these images"},
                 files=[
                     ("images", ("test1.jpg", test_image_bytes, "image/jpeg")),
-                    ("images", ("test2.png", test_png_bytes, "image/png"))
-                ]
+                    ("images", ("test2.png", test_png_bytes, "image/png")),
+                ],
             )
-            
+
             assert response.status_code == 200
             data = response.json()
-            
+
             assert "response" in data
             assert "processing_time_ms" in data
             assert "model_used" in data
@@ -110,37 +109,31 @@ class TestAgentAPI:
     def test_agent_chat_empty_message(self, client):
         """Test agent chat endpoint with empty message."""
         with agent_service.agent.override(model=TestModel()):
-            response = client.post(
-                "/api/v1/agent/chat",
-                data={"message": ""},
-                files={}
-            )
-            
+            response = client.post("/api/v1/agent/chat", data={"message": ""}, files={})
+
             assert response.status_code == 400  # Validation error
 
     def test_agent_chat_missing_message(self, client):
         """Test agent chat endpoint with missing message."""
         with agent_service.agent.override(model=TestModel()):
-            response = client.post(
-                "/api/v1/agent/chat",
-                data={},
-                files={}
-            )
-            
-            assert response.status_code == 422  # Validation error (missing required field)
+            response = client.post("/api/v1/agent/chat", data={}, files={})
+
+            assert (
+                response.status_code == 422
+            )  # Validation error (missing required field)
 
     def test_agent_chat_invalid_image_format(self, client):
         """Test agent chat endpoint with invalid image format."""
         with agent_service.agent.override(model=TestModel()):
             # Create a fake image with invalid format
             fake_image = b"fake_image_data"
-            
+
             response = client.post(
                 "/api/v1/agent/chat",
                 data={"message": "Test message"},
-                files={"images": ("test.bmp", fake_image, "image/bmp")}
+                files={"images": ("test.bmp", fake_image, "image/bmp")},
             )
-            
+
             assert response.status_code == 400
             data = response.json()
             assert "detail" in data
@@ -151,13 +144,13 @@ class TestAgentAPI:
         with agent_service.agent.override(model=TestModel()):
             # Create a large image that exceeds 8MB
             large_image = b"x" * (9 * 1024 * 1024)  # 9MB
-            
+
             response = client.post(
                 "/api/v1/agent/chat",
                 data={"message": "Test message"},
-                files={"images": ("large.jpg", large_image, "image/jpeg")}
+                files={"images": ("large.jpg", large_image, "image/jpeg")},
             )
-            
+
             assert response.status_code == 400
             data = response.json()
             assert "detail" in data
@@ -174,10 +167,10 @@ class TestAgentAPI:
                 data={"message": "Test message"},
                 files=[
                     ("images", ("test1.jpg", test_image_bytes, "image/jpeg")),
-                    ("images", ("test2.png", test_image_bytes, "image/png"))
-                ]
+                    ("images", ("test2.png", test_image_bytes, "image/png")),
+                ],
             )
-            
+
             assert response.status_code == 200
             data = response.json()
             assert "response" in data
@@ -189,14 +182,14 @@ class TestAgentAPI:
                 "/api/v1/agent/chat",
                 data={
                     "message": "Hello, this is a test message.",
-                    "session_id": "test-session-123"
+                    "session_id": "test-session-123",
                 },
-                files={}
+                files={},
             )
-            
+
             assert response.status_code == 200
             data = response.json()
-            
+
             assert "response" in data
             assert "session_id" in data
             assert data["session_id"] == "test-session-123"
@@ -205,25 +198,28 @@ class TestAgentAPI:
         """Test that agent chat responses have the correct structure."""
         with agent_service.agent.override(model=TestModel()):
             response = client.post(
-                "/api/v1/agent/chat",
-                data={"message": "Test message"},
-                files={}
+                "/api/v1/agent/chat", data={"message": "Test message"}, files={}
             )
-            
+
             assert response.status_code == 200
             data = response.json()
-            
+
             # Check top-level fields
             required_fields = ["response", "processing_time_ms", "model_used"]
             for field in required_fields:
                 assert field in data
-            
+
             # Check response structure
             response_data = data["response"]
-            required_response_fields = ["content", "confidence", "reasoning", "timestamp"]
+            required_response_fields = [
+                "content",
+                "confidence",
+                "reasoning",
+                "timestamp",
+            ]
             for field in required_response_fields:
                 assert field in response_data
-            
+
             # Check types
             assert isinstance(data["processing_time_ms"], (int, float))
             assert isinstance(data["model_used"], str)
@@ -235,13 +231,11 @@ class TestAgentAPI:
         with agent_service.agent.override(model=TestModel()):
             # Test with very long message
             long_message = "x" * 10001  # Exceeds 10000 character limit
-            
+
             response = client.post(
-                "/api/v1/agent/chat",
-                data={"message": long_message},
-                files={}
+                "/api/v1/agent/chat", data={"message": long_message}, files={}
             )
-            
+
             assert response.status_code == 400  # Validation error
 
     def test_agent_chat_with_gif_format(self, client):
@@ -249,13 +243,13 @@ class TestAgentAPI:
         with agent_service.agent.override(model=TestModel()):
             # Create a simple GIF-like data
             gif_data = b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x04\x01\x00;"
-            
+
             response = client.post(
                 "/api/v1/agent/chat",
                 data={"message": "Test GIF"},
-                files={"images": ("test.gif", gif_data, "image/gif")}
+                files={"images": ("test.gif", gif_data, "image/gif")},
             )
-            
+
             assert response.status_code == 200
             data = response.json()
             assert "response" in data
@@ -265,16 +259,13 @@ class TestAgentAPI:
         with agent_service.agent.override(model=TestModel()):
             response = client.post(
                 "/api/v1/agent/chat",
-                data={
-                    "message": "Test multipart",
-                    "session_id": "test-session"
-                },
-                files={"images": ("test.jpg", test_image_bytes, "image/jpeg")}
+                data={"message": "Test multipart", "session_id": "test-session"},
+                files={"images": ("test.jpg", test_image_bytes, "image/jpeg")},
             )
-            
+
             assert response.status_code == 200
             data = response.json()
-            
+
             assert data["session_id"] == "test-session"
             assert "response" in data
 
@@ -282,14 +273,12 @@ class TestAgentAPI:
         """Test that processing time is measured and returned."""
         with agent_service.agent.override(model=TestModel()):
             response = client.post(
-                "/api/v1/agent/chat",
-                data={"message": "Test processing time"},
-                files={}
+                "/api/v1/agent/chat", data={"message": "Test processing time"}, files={}
             )
-            
+
             assert response.status_code == 200
             data = response.json()
-            
+
             assert "processing_time_ms" in data
             processing_time = data["processing_time_ms"]
             assert isinstance(processing_time, (int, float))
@@ -299,14 +288,12 @@ class TestAgentAPI:
         """Test that the model_used field is populated correctly."""
         with agent_service.agent.override(model=TestModel()):
             response = client.post(
-                "/api/v1/agent/chat",
-                data={"message": "Test model field"},
-                files={}
+                "/api/v1/agent/chat", data={"message": "Test model field"}, files={}
             )
-            
+
             assert response.status_code == 200
             data = response.json()
-            
+
             assert "model_used" in data
             assert isinstance(data["model_used"], str)
-            assert len(data["model_used"]) > 0 
+            assert len(data["model_used"]) > 0
