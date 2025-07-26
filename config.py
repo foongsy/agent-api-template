@@ -30,6 +30,40 @@ class Settings(BaseSettings):
         description="Langfuse host URL"
     )
     
+    # Embedding configuration
+    embedding_model_name: str = Field(
+        default="BAAI/bge-m3",
+        description="HuggingFace embedding model name"
+    )
+    embedding_device: str = Field(
+        default="cpu",
+        description="Device for embedding model (cpu, cuda, etc.)"
+    )
+    
+    # Agent configuration
+    agent_model_name: str = Field(
+        default="google/gemini-2.5-flash-lite",
+        description="OpenRouter model name for agent (via OpenAI-compatible interface)"
+    )
+    agent_temperature: float = Field(
+        default=0.7,
+        description="Temperature for agent responses (0.0 to 2.0)"
+    )
+    agent_max_tokens: int = Field(
+        default=8192,
+        description="Maximum tokens for agent responses"
+    )
+    
+    # Multimodal configuration
+    max_image_size_mb: int = Field(
+        default=8,
+        description="Maximum image size in MB"
+    )
+    supported_image_formats: list[str] = Field(
+        default=["image/jpeg", "image/png", "image/gif"],
+        description="Supported image MIME types"
+    )
+    
     # Application configuration
     app_name: str = Field(
         default="AI Agent API",
@@ -40,7 +74,7 @@ class Settings(BaseSettings):
         description="Application version"
     )
     app_description: str = Field(
-        default="AI Agent API Service with embedding capabilities",
+        default="AI Agent API Service with embedding and multimodal capabilities",
         description="Application description for FastAPI docs"
     )
     debug: bool = Field(
