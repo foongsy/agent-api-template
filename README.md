@@ -1,6 +1,6 @@
-# AI Agent API Service
+# AI Agent API Service (Flask)
 
-A generic AI agent service with multimodal support, text embedding capabilities, and comprehensive tracing using pydantic-ai, FastAPI, and Langfuse.
+A generic AI agent service with multimodal support, text embedding capabilities, and comprehensive tracing using pydantic-ai, Flask + Flask-Pydantic, and Langfuse.
 
 ## 🚀 Quick Start
 
@@ -24,7 +24,11 @@ A generic AI agent service with multimodal support, text embedding capabilities,
 
 3. **Run the service:**
    ```bash
-   uv run uvicorn main:app --reload
+   # Development mode
+uv run python main.py
+
+# Production mode with Gunicorn
+uv run gunicorn --worker-class gthread --workers 4 --bind 0.0.0.0:8000 main:app
    ```
 
    **Note**: API documentation is available at `/docs` (Swagger UI) and `/redoc` (ReDoc) in development. Set `DOCS_ENABLED=false` in production to disable these endpoints.
@@ -224,7 +228,7 @@ COPY . .
 EXPOSE 8000
 
 # Run the application
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "gunicorn", "--worker-class", "gthread", "--workers", "4", "--bind", "0.0.0.0:8000", "main:app"]
 ```
 
 **Build and Run:**

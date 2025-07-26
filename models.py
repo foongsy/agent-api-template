@@ -72,3 +72,12 @@ class HealthResponse(BaseModel):
     status: str = Field(..., description="Service status")
     services: dict = Field(..., description="Status of individual services")
     timestamp: str = Field(..., description="Timestamp of health check")
+
+
+# Flask-specific models for form validation
+class ChatFormModel(BaseModel):
+    """Form model for chat endpoint in Flask."""
+
+    message: str = Field(..., min_length=1, max_length=10000, description="Text message from user")
+    session_id: Optional[str] = Field(None, description="Session identifier")
+    # Note: images are handled separately in Flask via request.files

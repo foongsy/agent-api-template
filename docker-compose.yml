@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  agent-api:
+  agent-api-flask:
     build: .
     ports:
       - "8000:8000"
@@ -10,6 +10,7 @@ services:
     environment:
       - DEBUG=false
       - DOCS_ENABLED=false
+      - FLASK_DEBUG=false
     volumes:
       # Mount for development (optional)
       # - .:/app
